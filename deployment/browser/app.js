@@ -190,7 +190,7 @@ function showTab(name) {
   }
   if (name === 'agent' && !agentLoaded) {
     agentLoaded = true
-    fetch('/agent')
+    fetch('/agent?t=' + Date.now(), { cache: 'no-store' })
       .then((res) => res.json())
       .then((agent) => {
         $('agent-body').replaceChildren()
@@ -208,6 +208,19 @@ $('tab-events').onclick = () => showTab('events')
 $('tab-stay').onclick = () => showTab('stay')
 $('tab-agent').onclick = () => showTab('agent')
 refreshStay()
+if (window.matchMedia('(max-width: 880px)').matches) showTab('stay')
+
+async function liveAgentId() {
+  try {
+    const res = await fetch('/agent?t=' + Date.now(), { cache: 'no-store' })
+    if (res.ok) {
+      const agent = await res.json()
+      if (agent.id) AGENT.id = agent.id
+      if (agent.name) AGENT.name = agent.name
+    }
+  } catch (_) { /* keep the id the page embedded */ }
+  return AGENT.id
+}
 
 async function addWorklet(ctx, code, name) {
   const url = blobUrl(code)
@@ -226,13 +239,14 @@ async function start() {
 
   try {
     // The API key never reaches the page; this token expires in 60 seconds.
-    const res = await fetch('/token')
+    const res = await fetch('/token?t=' + Date.now(), { cache: 'no-store' })
     if (!res.ok) {
       setStatus('error', 'could not mint a token, check the API key')
       reset()
       return
     }
     const { token } = await res.json()
+    const agentId = await liveAgentId()
 
     // Two contexts, created in the click handler so Safari starts them.
     captureCtx = new AudioContext({ sampleRate: WIRE_RATE })
@@ -261,6 +275,7 @@ async function start() {
     url.searchParams.set('token', token)
     ws = new WebSocket(url)
     let ready = false
+    let failed = false
 
     // The API takes base64 inside JSON, not binary frames.
     capture.port.onmessage = ({ data }) => {
@@ -276,8 +291,8 @@ async function start() {
 
     // Everything about the agent lives server-side; the session just names it.
     ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'session.update', session: { agent_id: AGENT.id } }))
-      logEvent('up', 'session.update', AGENT.id)
+      ws.send(JSON.stringify({ type: 'session.update', session: { agent_id: agentId } }))
+      logEvent('up', 'session.update', agentId)
     }
 
     ws.onmessage = ({ data }) => {
@@ -371,8 +386,11 @@ async function start() {
           break
 
         case 'session.error':
-          setStatus('error', msg.message)
+          failed = true
           logEvent('down', msg.type, `${msg.code}: ${msg.message}`)
+          reset()
+          setStatus('error', msg.message || 'could not start the agent')
+          try { ws.close() } catch (_) {}
           break
 
         default:
@@ -380,8 +398,8 @@ async function start() {
       }
     }
 
-    ws.onclose = () => { setStatus('idle'); reset() }
-    ws.onerror = () => { setStatus('error', 'connection failed'); reset() }
+    ws.onclose = () => { if (!failed) { setStatus('idle'); reset() } }
+    ws.onerror = () => { if (!failed) { setStatus('error', 'connection failed'); reset() } }
   } catch (error) {
     setStatus('error', error.message)
     reset()

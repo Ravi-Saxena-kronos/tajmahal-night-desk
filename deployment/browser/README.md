@@ -50,7 +50,7 @@ The server is [server.py](server.py), the page is [index.html](index.html) and t
 
 ## Hosting
 
-Vercel is the hosted demo. `index.py` is a WSGI entry and `api/index.py` plus `vercel.json` rewrites cover `/token`, `/agent`, `/app.js`, hotel tools, and booking vouchers. Set `ASSEMBLYAI_API_KEY`, `AGENT=night-desk`, and `AGENT_ID` in the Vercel project. The API key never reaches the browser.
+Vercel is the hosted demo. `index.py` is a WSGI entry and `api/index.py` plus `vercel.json` rewrites cover `/token`, `/agent`, `/app.js`, hotel tools, and booking vouchers. Set `ASSEMBLYAI_API_KEY` to the same key as local `.env` and `AGENT=night-desk`. Leave `AGENT_ID` empty unless that key already owns the id. The API key never reaches the browser.
 
 `render.yaml` is also configured for one-click deploys. Render prompts for `ASSEMBLYAI_API_KEY` during Blueprint creation, since that is the only variable marked `sync: false`, and sets `PORT` itself. `AGENT` and `AGENT_ID` arrive with defaults and are editable under Environment on the service.
 

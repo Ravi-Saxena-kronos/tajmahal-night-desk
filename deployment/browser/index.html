@@ -69,8 +69,15 @@
   body.no-side #side { display: none; }
   [hidden] { display: none !important; }
   @media (max-width: 880px) {
-    .panes { grid-template-columns: 1fr; grid-template-rows: 1fr 176px; }
+    body { padding: 12px 12px 16px; }
+    header { flex-wrap: wrap; gap: 8px 12px; }
+    h1 { font-size: 22px; width: 100%; margin-right: 0; letter-spacing: -0.6px; }
+    .hotel-meta { display: none; }
+    .panes { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 1fr) minmax(220px, 42vh); }
     body.no-side .panes { grid-template-rows: 1fr; }
+    .pane-foot { flex-wrap: wrap; }
+    select { flex: 1 1 100%; }
+    .pane-foot button { margin-left: 0; flex: 1 1 auto; width: 100%; }
   }
 
   .pane { display: flex; flex-direction: column; min-height: 0;

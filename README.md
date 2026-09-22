@@ -41,9 +41,9 @@ Tools: `check_availability`, `quote_rate`, `create_booking`. Inventory lives in 
 
    | Name | Value |
    | --- | --- |
-   | `ASSEMBLYAI_API_KEY` | from [AssemblyAI API keys](https://www.assemblyai.com/dashboard/api-keys) |
+   | `ASSEMBLYAI_API_KEY` | Copy the value from local `.env`. A different key cannot see the agent you tested on localhost. |
    | `AGENT` | `night-desk` |
-   | `AGENT_ID` | the `AGENT_ID_NIGHT_DESK` value from your local `.env` |
+   | `AGENT_ID` | Leave empty unless that key already owns the id. Setting `agent_3b41300c…` on another key returns 404 and the older deploy blanked the page. |
 
 4. Deploy. The live URL is the Vercel domain, for example `https://tajmahal-night-desk.vercel.app`.
 
