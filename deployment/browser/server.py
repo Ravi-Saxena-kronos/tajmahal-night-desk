@@ -33,6 +33,7 @@ from lib import (ApiError, aai, load_env, publish_agent, read_agent,  # noqa: E4
 # REST can still describe an id that the voice websocket rejects. This is the
 # Night Desk that starts a session with a Vercel-minted token.
 VOICE_FALLBACK_ID = "agent_3b41300cda834e87918ff9d0f2fd4ffb"
+DEAD_AGENT_IDS = {"agent_c047edc20a8b4d97b8a4138e8482ba84"}
 
 NO_STORE = {
     "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -177,6 +178,11 @@ def resolve_agent() -> dict:
     name = os.environ.get("AGENT", "night-desk")
     file_agent = read_agent(name)
     want = file_agent.get("name") or "Tajmahal Night Desk"
+    # Vercel serverless often cannot complete the voice probe. REST on that
+    # key still names agent_c047, which session.update rejects. Serve the id
+    # that already starts with a Vercel token.
+    if os.environ.get("VERCEL"):
+        return {"id": VOICE_FALLBACK_ID, "name": want}
     known = stored_agent_id(name)
     # Probe the id that already starts a session first so a stale Vercel
     # AGENT_ID does not burn the serverless time budget.
@@ -230,7 +236,7 @@ def resolve_agent() -> dict:
                 chosen = result["id"]
 
     if not voice_confirmed:
-        chosen = chosen or rest_names and next(iter(rest_names)) or VOICE_FALLBACK_ID
+        chosen = VOICE_FALLBACK_ID
 
     label = rest_names.get(chosen, want)
     print(f"Agent: {chosen}" + (" (voice ok)" if voice_confirmed else ""))
@@ -261,6 +267,9 @@ def ensure_ready() -> Optional[bytes]:
     load_env()
     if not os.environ.get("ASSEMBLYAI_API_KEY"):
         return b'{"error":"missing ASSEMBLYAI_API_KEY"}'
+    if AGENT and AGENT.get("id") in DEAD_AGENT_IDS:
+        AGENT = None
+        PAGE = ""
     if AGENT and PAGE:
         return None
     try:

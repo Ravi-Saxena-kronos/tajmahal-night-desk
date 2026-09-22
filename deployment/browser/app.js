@@ -5,6 +5,14 @@ const $ = (id) => document.getElementById(id)
 // ignore the rate an AudioContext asks for.
 const WIRE_RATE = 24_000
 const AGENT = window.AGENT
+const VOICE_AGENT_ID = 'agent_3b41300cda834e87918ff9d0f2fd4ffb'
+const DEAD_AGENT_IDS = new Set(['agent_c047edc20a8b4d97b8a4138e8482ba84'])
+
+function sessionAgentId(id) {
+  if (!id || DEAD_AGENT_IDS.has(id)) return VOICE_AGENT_ID
+  return id
+}
+if (AGENT) AGENT.id = sessionAgentId(AGENT.id)
 
 // Scratch buffers are reused: allocating on the audio thread causes glitches.
 const CAPTURE_WORKLET = `
@@ -215,11 +223,11 @@ async function liveAgentId() {
     const res = await fetch('/agent?t=' + Date.now(), { cache: 'no-store' })
     if (res.ok) {
       const agent = await res.json()
-      if (agent.id) AGENT.id = agent.id
+      if (agent.id) AGENT.id = sessionAgentId(agent.id)
       if (agent.name) AGENT.name = agent.name
     }
   } catch (_) { /* keep the id the page embedded */ }
-  return AGENT.id
+  return sessionAgentId(AGENT.id)
 }
 
 async function addWorklet(ctx, code, name) {
