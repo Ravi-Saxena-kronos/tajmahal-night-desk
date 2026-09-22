@@ -1,0 +1,8 @@
+.env
+agents/*.env
+data/bookings.json
+data/outbox
+__pycache__
+*.pyc
+.cursor
+.git

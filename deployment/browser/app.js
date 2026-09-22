@@ -143,6 +143,8 @@ const blobUrl = (code) =>
   URL.createObjectURL(new Blob([code], { type: 'application/javascript' }))
 
 let ws, captureCtx, playbackCtx, playback, mic, callStart, timer
+let lastToolEvent = 'reply.done'
+let pendingTools = []
 
 // --- microphones ---
 // Labels stay empty until mic permission is granted, so this runs again after
@@ -182,7 +184,7 @@ $('log-toggle').onclick = () => {
 let agentLoaded = false
 
 function showTab(name) {
-  for (const tab of ['events', 'agent']) {
+  for (const tab of ['events', 'stay', 'agent']) {
     $('tab-' + tab).classList.toggle('on', tab === name)
     $(tab + '-body').hidden = tab !== name
   }
@@ -203,7 +205,9 @@ function showTab(name) {
   }
 }
 $('tab-events').onclick = () => showTab('events')
+$('tab-stay').onclick = () => showTab('stay')
 $('tab-agent').onclick = () => showTab('agent')
+refreshStay()
 
 async function addWorklet(ctx, code, name) {
   const url = blobUrl(code)
@@ -278,6 +282,8 @@ async function start() {
 
     ws.onmessage = ({ data }) => {
       const msg = JSON.parse(data)
+      if (msg.type === 'reply.started' || msg.type === 'input.speech.started') lastToolEvent = msg.type
+      if (msg.type === 'reply.done' || msg.type === 'session.ready') lastToolEvent = msg.type === 'reply.done' ? msg.type : 'reply.done'
       switch (msg.type) {
         case 'session.ready':
           ready = true
@@ -314,7 +320,12 @@ async function start() {
 
         case 'reply.done':
           setStatus('listening')
-          if (msg.status === 'interrupted') playback?.port.postMessage('stop')
+          if (msg.status === 'interrupted') {
+            playback?.port.postMessage('stop')
+            pendingTools = []
+          } else {
+            flushTools()
+          }
           logEvent('down', msg.type, msg.status)
           break
 
@@ -347,10 +358,10 @@ async function start() {
           break
 
         case 'tool.call': {
-          // http tools run on AssemblyAI's side; no result comes back here.
-          const args = JSON.stringify(msg.arguments ?? {})
-          addLine('tool', `${msg.name}(${args})`)
-          logEvent('down', msg.type, `${msg.name} ${args}`)
+          const args = msg.arguments ?? {}
+          addLine('tool', `${msg.name}(${JSON.stringify(args)})`)
+          logEvent('down', msg.type, `${msg.name} ${JSON.stringify(args)}`)
+          handleToolCall(msg)
           break
         }
 
@@ -561,4 +572,90 @@ function logEvent(direction, type, detail) {
   while (log.children.length > 400) log.firstChild.remove()
   if (COALESCE.has(type)) open.set(key, { row, count: 1, detail, painted: 0 })
   if (atBottom) scroll(log)
+}
+
+function rupees(n) {
+  return '₹' + Number(n).toLocaleString('en-IN')
+}
+
+function flushTools() {
+  if (!ws || ws.readyState !== 1) return
+  if (lastToolEvent === 'reply.started' || lastToolEvent === 'input.speech.started') return
+  for (const tool of pendingTools) {
+    ws.send(JSON.stringify({
+      type: 'tool.result',
+      call_id: tool.call_id,
+      result: JSON.stringify(tool.result),
+    }))
+    logEvent('up', 'tool.result', tool.name)
+  }
+  pendingTools = []
+}
+
+async function handleToolCall(msg) {
+  let args = msg.arguments ?? {}
+  if (typeof args === 'string') {
+    try { args = JSON.parse(args) } catch { args = {} }
+  }
+  let result
+  try {
+    const res = await fetch('/api/tools/' + encodeURIComponent(msg.name), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(args),
+    })
+    result = await res.json()
+  } catch (err) {
+    result = { error: 'Tool request failed: ' + err.message }
+  }
+  addLine('tool', msg.name + ' → ' + JSON.stringify(result))
+  pendingTools.push({ call_id: msg.call_id, name: msg.name, result })
+  flushTools()
+  refreshStay()
+  if (result.confirmation) {
+    showTab('stay')
+  }
+}
+
+function refreshStay() {
+  fetch('/api/hotel')
+    .then((res) => res.json())
+    .then(paintStay)
+    .catch(() => {})
+}
+
+function paintStay(data) {
+  const rooms = $('rooms')
+  if (!rooms) return
+  rooms.replaceChildren()
+  for (const room of data.inventory || []) {
+    const open = (room.open_nights || []).includes(data.hotel.today)
+    const el = document.createElement('div')
+    el.className = 'room' + (open ? '' : ' sold')
+    el.innerHTML = '<b>' + room.id + ' ' + room.type + '</b> · '
+      + room.guests + ' guests · '
+      + (room.smoking ? 'smoking' : 'non-smoking')
+      + '<div class="rate">' + rupees(room.rate) + ' / night · '
+      + (open ? 'open tonight' : 'sold out Friday') + '</div>'
+    rooms.append(el)
+  }
+  const card = $('booking-card')
+  const latest = (data.bookings || []).slice(-1)[0]
+  if (!latest) {
+    card.innerHTML = ''
+    return
+  }
+  card.innerHTML = '<div class="card"><h3>Latest booking</h3><dl>'
+    + '<dt>Confirmation</dt><dd class="confirm">' + latest.confirmation + '</dd>'
+    + '<dt>Guest</dt><dd>' + latest.guest_name + '</dd>'
+    + '<dt>Email</dt><dd>' + (latest.guest_email || 'not given') + '</dd>'
+    + '<dt>Mail</dt><dd>' + (latest.email_status || 'not_requested') + '</dd>'
+    + '<dt>Room</dt><dd>' + latest.room_id + ' ' + latest.room_type + '</dd>'
+    + '<dt>Stay</dt><dd>' + latest.check_in + ' to ' + latest.check_out + '</dd>'
+    + '<dt>Total</dt><dd>' + rupees(latest.total_inr) + '</dd>'
+    + '</dl>'
+    + '<div class="card-actions">'
+    + '<a href="/booking/' + latest.confirmation + '?print=1" target="_blank" rel="noopener">Print</a>'
+    + '<a class="secondary" href="/booking/' + latest.confirmation + '/download">Download</a>'
+    + '</div></div>'
 }

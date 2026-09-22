@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/", "destination": "/api?__p=/" },
+    { "source": "/token", "destination": "/api?__p=/token" },
+    { "source": "/agent", "destination": "/api?__p=/agent" },
+    { "source": "/app.js", "destination": "/api?__p=/app.js" },
+    { "source": "/api/hotel", "destination": "/api?__p=/api/hotel" },
+    { "source": "/api/tools/:name", "destination": "/api?__p=/api/tools/:name" },
+    { "source": "/booking/:code/download", "destination": "/api?__p=/booking/:code/download" },
+    { "source": "/booking/:code", "destination": "/api?__p=/booking/:code" }
+  ]
+}

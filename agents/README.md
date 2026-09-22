@@ -40,6 +40,7 @@ For credentials, write `${MY_KEY}` anywhere in the file and put the value in `.e
 | [airtable-crm.jsonc](airtable-crm.jsonc) | one tool that reads records and one that writes them |
 | [cal-booking.jsonc](cal-booking.jsonc) | two tools used in sequence: check availability, then book |
 | [dtmf.jsonc](dtmf.jsonc) | `dtmf_collected_arguments`, for PCI compliance: keypad digits the model never sees |
+| [night-desk.jsonc](night-desk.jsonc) | Tajmahal Hotel night desk: inventory tools, no invented rates, print/download confirmation |
 
 ## Two things to know
 

@@ -25,9 +25,9 @@
     --error: #f04438;
     --radius-sm: 4px;
     --radius-lg: 12px;
-    --font-display: "Oceanic Text", Georgia, serif;
-    --font-body: "UN 11ST", system-ui, -apple-system, sans-serif;
-    --font-mono: "Modern Gothic Mono", "JetBrains Mono", ui-monospace, monospace;
+    --font-display: Georgia, "Times New Roman", serif;
+    --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -132,12 +132,37 @@
   #agent-body pre { font-family: var(--font-mono); font-size: 12px;
                     line-height: 1.6; color: var(--text); white-space: pre-wrap;
                     word-break: break-word; }
+
+  .hotel-meta { color: var(--text-muted); font-size: 13px; margin-right: 8px; }
+  .hint { font-size: 13px; color: var(--text-muted); line-height: 1.45; }
+  .hint strong { color: var(--text-dark); font-weight: 600; }
+  .rooms { display: grid; gap: 8px; }
+  .room { border: 1px solid var(--border); border-radius: var(--radius-sm);
+          padding: 10px 12px; background: var(--surface); }
+  .room.sold { opacity: .55; }
+  .room b { color: var(--text-dark); }
+  .room .rate { color: var(--cobolt-500); font-family: var(--font-mono); font-size: 12px; }
+  .card { border: 1px solid var(--cobolt-100); background: #f6f4ff;
+          border-radius: var(--radius-sm); padding: 12px; margin-top: 12px; }
+  .card h3 { font-family: var(--font-display); font-size: 18px; font-weight: 400;
+             color: var(--text-dark); margin-bottom: 8px; }
+  .card dl { display: grid; grid-template-columns: 110px 1fr; gap: 4px 8px; font-size: 14px; }
+  .card dt { color: var(--text-faint); }
+  .card dd { color: var(--text-dark); }
+  .confirm { font-family: var(--font-mono); color: var(--cobolt-500); letter-spacing: 1px; }
+  .card-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .card-actions a { height: 36px; padding: 0 14px; display: inline-flex; align-items: center;
+                    background: var(--cobolt-500); color: #fff; text-decoration: none;
+                    border-radius: var(--radius-sm); font-family: var(--font-mono);
+                    font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+  .card-actions a.secondary { background: var(--text-dark); }
 </style>
 </head>
 <body>
 <main>
   <header>
     <h1>{{AGENT_NAME}}</h1>
+    <span class="hotel-meta">Tajmahal Hotel · New Delhi · after 11 PM</span>
     <span class="status idle" id="status"><span id="status-text">idle</span></span>
     <span class="meter"><span id="elapsed">0:00</span><span id="cost">$0.000</span></span>
   </header>
@@ -146,7 +171,7 @@
     <section class="pane">
       <div class="pane-head"><span>Transcript</span></div>
       <div class="pane-body" id="transcript">
-        <div class="empty">Start the call and talk. Partial transcripts appear as they stream, and tool calls show up inline.</div>
+        <div class="empty">Start the call and talk. Try: room for two, Friday to Sunday, non-smoking. Or: give me a room for two thousand rupees tonight.</div>
       </div>
       <div class="pane-foot">
         <select id="mic" aria-label="Microphone"><option value="">Default microphone</option></select>
@@ -157,12 +182,18 @@
       <div class="pane-head">
         <span class="tabs">
           <button class="ghost tab on" id="tab-events">Events</button>
+          <button class="ghost tab" id="tab-stay">Stay</button>
           <button class="ghost tab" id="tab-agent">Agent</button>
         </span>
         <button class="ghost" id="log-toggle">Hide</button>
       </div>
       <div class="pane-body" id="events-body">
         <div class="empty">Every websocket frame, both directions. Repeats collapse into a count.</div>
+      </div>
+      <div class="pane-body" id="stay-body" hidden>
+        <p class="hint"><strong>Demo tonight:</strong> Friday 25 Sep 2026. Inventory is fictional. Rates are rupees.</p>
+        <div id="rooms" class="rooms"></div>
+        <div id="booking-card"></div>
       </div>
       <div class="pane-body" id="agent-body" hidden>
         <div class="empty">Loading the published agent.</div>

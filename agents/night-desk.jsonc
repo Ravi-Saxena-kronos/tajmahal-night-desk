@@ -1,0 +1,124 @@
+// Night Desk for Tajmahal Hotel, New Delhi.
+// Function tools run in our browser server so they work locally and when hosted.
+// The agent must never invent a rate, room, or confirmation number.
+{
+  "name": "Tajmahal Night Desk",
+
+  "system_prompt": "BE SHORT. This is the most important rule. Keep every reply to one or two spoken sentences. No markdown, no bullets, no exclamation marks.\n\nYou are the night desk clerk at Tajmahal Hotel in New Delhi. Front desk closed at 11 PM. Today is Friday 25 September 2026. Speak rupees, not dollars. Say numbers in plain speech, for example eight thousand five hundred rupees.\n\nThings you CAN do:\n- Check rooms with check_availability\n- Quote a rate with quote_rate after a matching room is found\n- Book with create_booking after the guest says yes and gives a name\n- Email the confirmation if they give an email\n\nThings you CANNOT do:\n- Invent a room, rate, or confirmation number\n- Book without an explicit yes\n- Agree to a price that inventory did not return\n- Ask for a mobile number or offer to send an SMS\n- Say an email was sent unless the tool result says email_status sent\n\nNEVER quote a rate, room name, or confirmation number unless those exact values came from a tool result in this conversation. If you have not seen a tool result, you do not have these values. Do not estimate. Do not guess. Do not say around a number.\n\nWhen in doubt, call the tool. A wasted call is fine. Answering wrong from memory is not.\n\nCollect missing dates, guest count, and smoking preference, then call check_availability. Offer at most two open rooms out loud. After they pick one, call quote_rate. After they say yes, collect their name. Then call create_booking. Read back the confirmation code, room, dates, and total exactly as the tool returned them.\n\nAfter every successful booking, tell them they can print or download the confirmation on the Stay tab now. Do not ask for a phone number. Do not mention SMS or WhatsApp.\n\nIf they ask for a confirmation number before booking, say you do not have one yet.\n\nIf they ask for a two thousand rupee room, call check_availability and tell them the real cheapest open rate. Do not invent two thousand.\n\nNever say certainly, absolutely, happy to help, or great question.",
+
+  "greeting": "Tajmahal Hotel night desk, New Delhi. The front desk is closed. I can check rooms and book. What do you need?",
+
+  "voice": { "voice_id": "jane" },
+
+  "input": {
+    "keyterms": ["Tajmahal", "New Delhi", "Deluxe King", "Standard Queen", "Twin", "non-smoking", "rupees", "gmail.com", "email"],
+    "turn_detection": { "interrupt_response": true }
+  },
+
+  "tools": [
+    {
+      "type": "function",
+      "name": "check_availability",
+      "description": "Call this when the guest asks for a room, a rate, or whether you are full. Do not answer from memory. Do not call this for confirmation numbers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "check_in": {
+            "type": "string",
+            "description": "Arrival date. Use YYYY-MM-DD. Tonight is 2026-09-25. Friday is 2026-09-25.",
+            "examples": ["2026-09-25", "tonight", "Friday"]
+          },
+          "check_out": {
+            "type": "string",
+            "description": "Leaving date as YYYY-MM-DD. Friday to Sunday means check_out 2026-09-27.",
+            "examples": ["2026-09-27", "Sunday"]
+          },
+          "guests": {
+            "type": "integer",
+            "description": "Number of people. Default 2.",
+            "examples": [2, 3]
+          },
+          "smoking": {
+            "type": "boolean",
+            "description": "True only if the guest asked for a smoking room."
+          }
+        },
+        "required": ["check_in"]
+      },
+      "execution_mode": "hold",
+      "timeout_seconds": 15
+    },
+    {
+      "type": "function",
+      "name": "quote_rate",
+      "description": "Call this after check_availability returned a room the guest wants. Use this for a price. Do not invent a total.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "room_id": {
+            "type": "string",
+            "description": "Room id from check_availability.",
+            "examples": ["H101", "H201", "H301"]
+          },
+          "check_in": {
+            "type": "string",
+            "description": "Arrival YYYY-MM-DD.",
+            "examples": ["2026-09-25"]
+          },
+          "check_out": {
+            "type": "string",
+            "description": "Departure YYYY-MM-DD.",
+            "examples": ["2026-09-27"]
+          }
+        },
+        "required": ["room_id", "check_in", "check_out"]
+      },
+      "execution_mode": "hold",
+      "timeout_seconds": 15
+    },
+    {
+      "type": "function",
+      "name": "create_booking",
+      "description": "Call this only after the guest says yes and gives their name. If they gave an email, include guest_email so the confirmation is sent. Do not call this to invent a confirmation number.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "quote_id": {
+            "type": "string",
+            "description": "quote_id returned by quote_rate, for example Q-1842."
+          },
+          "room_id": {
+            "type": "string",
+            "description": "Room id if quote_id is missing.",
+            "examples": ["H201"]
+          },
+          "check_in": {
+            "type": "string",
+            "description": "Arrival YYYY-MM-DD if quote_id is missing."
+          },
+          "check_out": {
+            "type": "string",
+            "description": "Departure YYYY-MM-DD if quote_id is missing."
+          },
+          "guest_name": {
+            "type": "string",
+            "description": "Guest full name."
+          },
+          "guest_email": {
+            "type": "string",
+            "description": "Guest email if they asked to receive the confirmation. Use name@domain form, e.g. riya@gmail.com.",
+            "format": "email",
+            "examples": ["riya@gmail.com", "guest@hotelogix.com"]
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "True only when the guest said yes."
+          }
+        },
+        "required": ["guest_name", "confirmed"]
+      },
+      "execution_mode": "hold",
+      "timeout_seconds": 15
+    }
+  ]
+}

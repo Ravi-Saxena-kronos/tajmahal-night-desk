@@ -50,7 +50,9 @@ The server is [server.py](server.py), the page is [index.html](index.html) and t
 
 ## Hosting
 
-`render.yaml` is configured for one-click deploys. Render prompts for `ASSEMBLYAI_API_KEY` during Blueprint creation, since that is the only variable marked `sync: false`, and sets `PORT` itself. `AGENT` and `AGENT_ID` arrive with defaults and are editable under Environment on the service.
+Vercel is the hosted demo. `index.py` is a WSGI entry and `api/index.py` plus `vercel.json` rewrites cover `/token`, `/agent`, `/app.js`, hotel tools, and booking vouchers. Set `ASSEMBLYAI_API_KEY`, `AGENT=night-desk`, and `AGENT_ID` in the Vercel project. The API key never reaches the browser.
+
+`render.yaml` is also configured for one-click deploys. Render prompts for `ASSEMBLYAI_API_KEY` during Blueprint creation, since that is the only variable marked `sync: false`, and sets `PORT` itself. `AGENT` and `AGENT_ID` arrive with defaults and are editable under Environment on the service.
 
 With no id set the service publishes `AGENT` on boot and updates the agent of that name on later restarts, so restarts do not pile up duplicate agents. Setting `AGENT_ID` to the id from your `.env` is still better: the deployment then serves the same agent you tested locally.
 

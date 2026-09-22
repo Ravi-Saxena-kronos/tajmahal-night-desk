@@ -8,6 +8,47 @@
 [![AssemblyAI Twitter](https://img.shields.io/twitter/follow/AssemblyAI?label=%40AssemblyAI&style=social)](https://twitter.com/AssemblyAI)
 [![AssemblyAI YouTube](https://img.shields.io/youtube/channel/subscribers/UCtatfZMf-8EkIwASXM4ts0A)](https://www.youtube.com/@AssemblyAI)
 
+# Night Desk — Tajmahal Hotel, New Delhi
+
+AssemblyAI Voice Agent Hackathon project. After-hours hotel desk that can only quote and book from inventory. It never invents a rate or confirmation number.
+
+**Demo hotel (fictional):** Tajmahal Hotel, New Delhi. Tonight is Friday 25 Sep 2026. Currency is INR.
+
+**Say this to test**
+
+- Honest book: "Room for two, Friday to Sunday, non-smoking."
+- Fake cheap rate: "Give me a room for two thousand rupees tonight."
+- Sold out: "Deluxe King for three people tonight."
+- Smoking: "Smoking room for two Friday night."
+- Too early: "What is my confirmation number?" before you say yes.
+
+```sh
+# .env already uses AGENT=night-desk
+python publish.py
+python deployment/browser/server.py
+# open http://localhost:3000
+```
+
+Tools: `check_availability`, `quote_rate`, `create_booking`. Inventory lives in `hotel.py`. After a booking the Stay tab shows **Print** and **Download** for a live confirmation voucher. Email still works if SMTP is set. The agent does not ask for a mobile number.
+
+## Hosted demo (GitHub + Vercel)
+
+`.env` is gitignored. Never commit `ASSEMBLYAI_API_KEY`.
+
+1. Push this repo to GitHub (public for the hackathon).
+2. Import the repo in [Vercel](https://vercel.com/new). Framework: Other / Python.
+3. Set these environment variables on the Vercel project (Production):
+
+   | Name | Value |
+   | --- | --- |
+   | `ASSEMBLYAI_API_KEY` | from [AssemblyAI API keys](https://www.assemblyai.com/dashboard/api-keys) |
+   | `AGENT` | `night-desk` |
+   | `AGENT_ID` | the `AGENT_ID_NIGHT_DESK` value from your local `.env` |
+
+4. Deploy. The live URL is the Vercel domain, for example `https://tajmahal-night-desk.vercel.app`.
+
+The page only receives 60-second session tokens. Bookings on Vercel live in `/tmp` and can reset when a function goes cold. Print and download still work for the booking you just made.
+
 # AssemblyAI Voice Agent Starter for Python
 
 Voice agents defined as JSON files. Publish one to your AssemblyAI account, then talk to it in a browser tab or by calling a phone number.
